@@ -12,10 +12,10 @@ class BotUser(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     telegram_id = Column(BigInteger, nullable=False)
-    yclients_id = Column(Integer, unique=True, nullable=False)
+    quick_resto_id = Column(Integer, unique=True, nullable=False)
     creation_date = Column(DateTime, nullable=False)
     phone = Column(String, nullable=True)
-    is_employee = Column(Boolean, nullable=True)
+    is_admin = Column(Boolean, nullable=True)
 
 async def create_tables():
     async with db.begin() as conn:

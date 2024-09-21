@@ -8,5 +8,8 @@ class Register(StatesGroup):
 class Review(StatesGroup):
     text_review = State()
 
+class Campaign(StatesGroup):
+    campaign_text = State()
+
 
     
