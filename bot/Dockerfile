@@ -15,6 +15,7 @@ COPY . .
 
 # Устанавливаем переменные окружения
 ENV PYTHONUNBUFFERED=1
+EXPOSE 8001
 
 # Запускаем бота
 CMD ["python", "main.py"]
