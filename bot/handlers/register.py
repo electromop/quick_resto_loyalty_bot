@@ -11,13 +11,12 @@ from aiogram.types import (
     InlineKeyboardMarkup, WebAppInfo,
 )
 
-from utils.quick_resto import client_exists, create_client, get_bonus_info
+from utils.quick_resto import create_client, get_bonus_info, search_client, get_client_info
 from states.states import Register
 from config import Config
 
-# from config import config
 from keyboards.make_keyboards import *
-from extensions import Session
+# from extensions import Session
 from models import BotUser
 from orm import BotUserManager
 from datetime import datetime
@@ -29,84 +28,129 @@ router = Router()
 async def cmd_register(message: Message, state: FSMContext):
     if await BotUserManager().get_by_telegram_id(telegram_id=message.from_user.id):
         kb = make_inline_keyboard({'Да': 'reauthorize_yes', 'Нет':'reauthorize_no'})
-        await message.answer('Вы уже авторизованы!\nХотите зайти под другим номером телефона?', reply_markup=kb)
+        await message.answer('Вы уже авторизованы!\n\nХотите зайти под другим номером телефона?', reply_markup=kb.as_markup())
     else:
         await message.answer("Пожалуйста, поделитесь своим номером телефона, чтобы авторизироваться", reply_markup=make_contact_keyboard())
         await state.set_state(Register.phone)
 
-
 @router.message(StateFilter(Register.phone))
 async def cmd_register_phone(message: Message, state: FSMContext):
-    await message.answer("Одну минуту, мы ищем Вас в нашей базе...")
-    try:
-        phone = message.contact.phone_number
-        quick_resto_id = await client_exists(phone)
-
-        if quick_resto_id:
+    await message.answer(html.italic("Одну минуту, ищем Ваш номер среди клиентов..."), reply_markup=ReplyKeyboardRemove())
+    # try:
+    phone = message.contact.phone_number
+    user_id = await search_client(phone)
+    print(user_id)
+    if user_id:
+        user = await get_client_info(user_id)
+        if user["customerGroup"]['name'] in ["СТАРТ", "2", "3", "4"]:
             telegram_id = message.from_user.id
 
-            user = BotUser(telegram_id=telegram_id,
-                        quick_resto_id=quick_resto_id,
-                        phone=phone,
-                        creation_date=datetime.now().date())
+            db_user = BotUser(telegram_id=telegram_id,
+                            quick_resto_id=user["id"],
+                            phone=phone,
+                            creation_date=datetime.now().date())
 
-            await BotUserManager().add(user)
-            await message.answer("Вы успешно авторизировались!", reply_markup=ReplyKeyboardRemove())
+            await BotUserManager().add(db_user)
+            await message.answer("Вы успешно авторизировались! Чтобы зайти в главное меню нажмите - /start", reply_markup=ReplyKeyboardRemove())
             await state.clear()
             if await BotUserManager().get_by_telegram_id(telegram_id=message.from_user.id):
-                cachback_info = await get_bonus_info(message.from_user.id)
+                cachback_info = await get_bonus_info(db_user.quick_resto_id)
                 await message.answer(
-                f"Здравствуйте, {html.quote(message.from_user.first_name)}."
-                f"\nВаш уровень кешбека: {cachback_info}"
-                # f"\nКоличество баллов: {}"
-            )
+                        f"Здравствуйте, {html.quote(message.from_user.first_name)}."
+                        f"\nВаш уровень кешбека: {cachback_info['bonus_level']} {cachback_info['bonus_percent']}"
+                        f"\nКоличество баллов: {cachback_info['bonus_balance']}"
+                    )
             else:
-                await message.answer('Ошибка авторизации. Попробуйте еще раз')
+                    await message.answer('Ошибка авторизации. Попробуйте еще раз.')
         else:
-            await message.answer(
-                "К сожалению, Вы еще не зарегистрированы в системе лояльности."
-                "Хотите зарегистрироваться?",
-                reply_markup=make_inline_keyboard({'Да': 'register_yes', 'Нет': 'register_no'})
+                await message.answer(
+                    f"{html.italic('К сожалению, Вы еще не зарегистрированы в системе лояльности.')}"
+                    f"\n\nМы подарим приветственный бонус в размере {html.bold('200 баллов')}, если присоединитесь сейчас)"
+                    "\n\nХотите зарегистрироваться?",
+                    reply_markup=make_inline_keyboard({'Да': 'register_yes', 'Нет': 'register_no'}).as_markup()
                 )
-            state.update_data({'phone': phone})
-    except Exception as e:
-        print(e)
-        await message.answer("Упс! Вы отправили что-то другое. Нажмите на кнопку ниже, чтобы авторизироваться", reply_markup=make_contact_keyboard())
-        await state.clear()
+    else:
+        await message.answer(
+                f"{html.italic('К сожалению, Вы еще не зарегистрированы в системе лояльности.')}"
+                f"\n\nМы подарим приветственный бонус в размере {html.bold('200 баллов')}, если присоединитесь сейчас)"
+                "\n\nХотите зарегистрироваться?",
+                reply_markup=make_inline_keyboard({'Да': 'register_yes', 'Нет': 'register_no'}).as_markup()
+                )
+        await state.update_data({'phone': phone})
+    # except Exception as e:
+    #     print(e)
+    #     await message.answer("Упс! Вы отправили что-то другое. Нажмите на кнопку ниже, чтобы авторизироваться", reply_markup=make_contact_keyboard())
+    #     await state.clear()
 
 @router.callback_query(lambda call: call.data=="reauthorize_yes")
 async def reauthorize_yes(callback_data: Message, state: FSMContext):
-    await callback_data.answer("Чтобы авторизироваться напишите свой номер телефона:")
+    await callback_data.message.answer("Чтобы авторизироваться, напишите свой номер телефона:", reply_markup=make_contact_keyboard())
     await state.set_state(Register.phone)
 
 
 @router.callback_query(lambda call: call.data=="reauthorize_no")
 async def reauthorize_no(callback_data: Message, state: FSMContext):
-    await callback_data.answer('Хорошо.\nЕсли что-то непонятно введите /help')
+    await callback_data.message.answer('Хорошо.\nЕсли что-то непонятно введите /help', reply_markup=ReplyKeyboardRemove())
+
 
 @router.callback_query(lambda call: call.data=="register_yes")
 async def register_yes(callback_data: Message, state: FSMContext):
-    phone = state.get_data()['phone']
-    quick_resto_id = await create_client(callback_data.from_user.full_name, phone)
-    telegram_id = callback_data.message.from_user.id
-    
-    user = BotUser(telegram_id=telegram_id,
-                        quick_resto_id=quick_resto_id,
+    await callback_data.message.answer(html.italic("Пожалуйста, введите свое ФИО, чтобы мы знали как к Вам обращаться:"))
+    await state.set_state(Register.phone_after_name)
+
+@router.message(StateFilter(Register.phone_after_name))
+async def cmd_register_name(message: Message, state: FSMContext):
+    await message.answer(html.italic("Одну минуту, создаем Ваш профиль..."))
+    phone_data = await state.get_data()
+    phone = phone_data['phone']
+    user_id= await search_client(phone)
+    first_name = message.text.split(' ')[0]
+    last_name = message.text.split(' ')[1]
+    middle_name = message.text.split(' ')[2]
+    if not user_id:
+        new_user = await create_client(first_name, last_name, phone)
+        telegram_id = message.from_user.id
+            
+        db_user = BotUser(telegram_id=telegram_id,
+                        quick_resto_id=new_user['id'],
                         phone=phone,
                         creation_date=datetime.now().date())
 
-    await BotUserManager().add(user)
-    await callback_data.answer("Спасибо! Теперь Вы зарегистрированы в системе лояльности.")
-    if await BotUserManager().get_by_telegram_id(telegram_id=callback_data.from_user.id):
-        cachback_info = await get_bonus_info(callback_data.from_user.id)
-        await callback_data.answer(
-            f"Здравствуйте, {html.quote(callback_data.from_user.first_name)}."
-            f"\nВаш уровень кешбека: {cachback_info}"
-            # f"\nКоличество баллов: {}"
-        )
+        await BotUserManager().add(db_user)
+        await message.answer("Спасибо! Теперь Вы зарегистрированы в системе лояльности.\n\nЧтобы зайти в главное меню нажмите /start")
+        await state.clear()
+        if await BotUserManager().get_by_telegram_id(telegram_id=message.from_user.id):
+            cachback_info = await get_bonus_info(user_id)
+            await message.answer(
+                    f"Здравствуйте, {html.quote(message.from_user.first_name)}."
+                    f"\nВаш уровень кешбека: {cachback_info['bonus_level']} {cachback_info['bonus_percent']}"
+                    f"\nКоличество баллов: {cachback_info['bonus_balance']}",
+                    reply_markup=make_inline_keyboard({"История списаний": 'bonus_history'}).as_markup()
+            )
+        else:
+            await message.answer('Ошибка регистрация. Попробуйте еще раз или напишите менеджеру @поддержка')
     else:
-        await callback_data.answer('Ошибка авторизации. Попробуйте еще раз')
+        db_user = BotUser(telegram_id=telegram_id,
+                        quick_resto_id=user_id,
+                        phone=phone,
+                        creation_date=datetime.now().date())
+
+        await BotUserManager().add(db_user)
+
+        await message.answer(html.bold("Спасибо! Теперь Вы зарегистрированы в системе лояльности."))
+
+        if await BotUserManager().get_by_telegram_id(telegram_id=message.from_user.id):
+            cachback_info = await get_bonus_info(user_id)
+            await message.answer(
+                    f"Здравствуйте, {html.quote(message.from_user.first_name)}."
+                    f"\nВаш уровень кешбека: {cachback_info}"
+                    f"\nВаш уровень кешбека: {cachback_info['bonus_level']} {cachback_info['bonus_percent']}"
+                    f"\nКоличество баллов: {cachback_info['bonus_balance']}",
+                    reply_markup=make_inline_keyboard({"История списаний": "bonus_history"}).as_markup()
+            )
+        else:
+            await message.answer('Ошибка регистрация. Попробуйте еще раз или напишите менеджеру @поддержка')
 
 @router.callback_query(lambda call: call.data=="register_no")
 async def register_no(callback_data: Message, state: FSMContext):
-    await callback_data.answer('Хорошо.\nЕсли что-то непонятно введите /help')
+    await callback_data.message.answer('Хорошо.\nЕсли что-то непонятно, введите /help', reply_markup=ReplyKeyboardRemove())

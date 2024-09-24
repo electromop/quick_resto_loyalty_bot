@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from handlers import common, register, bonus_extended
+from handlers import common, register, bonus_extended, admin
 
 from api import app
 import uvicorn
@@ -19,7 +19,7 @@ async def start_bot():
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
     )
 
-    dp.include_routers(common.router, register.router)
+    dp.include_routers(common.router, register.router, bonus_extended.router, admin.router)
     await dp.start_polling(bot)
 
 

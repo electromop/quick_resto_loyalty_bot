@@ -4,6 +4,7 @@ class Register(StatesGroup):
     name = State()
     city = State()
     phone = State()
+    phone_after_name = State()
 
 class Review(StatesGroup):
     text_review = State()
