@@ -51,15 +51,16 @@ async def cmd_register_phone(message: Message, state: FSMContext):
                             creation_date=datetime.now().date())
 
             await BotUserManager().add(db_user)
-            await message.answer("Вы успешно авторизировались! Чтобы зайти в главное меню нажмите - /start", reply_markup=ReplyKeyboardRemove())
+            await message.answer("Вы успешно авторизировались!", reply_markup=ReplyKeyboardRemove())
             await state.clear()
             if await BotUserManager().get_by_telegram_id(telegram_id=message.from_user.id):
                 cachback_info = await get_bonus_info(db_user.quick_resto_id)
                 await message.answer(
                         f"Здравствуйте, {html.quote(message.from_user.first_name)}."
                         f"\nВаш уровень кешбека: {cachback_info['bonus_level']} {cachback_info['bonus_percent']}"
-                        f"\nКоличество баллов: {cachback_info['bonus_balance']}"
-                    )
+                        f"\nКоличество баллов: {cachback_info['bonus_balance']}",
+                        reply_markup=make_inline_keyboard({'История списаний': 'bonus_history'}).as_markup()
+                        )
             else:
                     await message.answer('Ошибка авторизации. Попробуйте еще раз.')
         else:

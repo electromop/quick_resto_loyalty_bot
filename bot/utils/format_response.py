@@ -20,9 +20,10 @@ def format_transactions(transactions):
     ],
     '''
     formatted_transactions = "ИСТОРИЯ ТРАНЗАКЦИЙ\n\n"
-    for transaction in transactions:
-        print("DATE", transaction["regTime"])
-        formatted_transactions += f"""{op_type.get(transaction["type"])} {transaction["regTime"][:10]} {transaction["amount"]}\n"""
+    for transaction in transactions[:20]:
+        # print("DATE", transaction["regTime"])
+        if op_type.get(transaction["type"]):
+            formatted_transactions += f"""{op_type.get(transaction["type"])} {transaction["regTime"][:10]} {transaction["amount"]}\n"""
     if formatted_transactions:
         print(formatted_transactions)
         return formatted_transactions
