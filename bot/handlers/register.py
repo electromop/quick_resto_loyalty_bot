@@ -48,7 +48,7 @@ async def cmd_register_phone(message: Message, state: FSMContext):
                     "\n\nХотите зарегистрироваться?",
                     reply_markup=make_inline_keyboard({'Да': 'register_yes_update', 'Нет': 'register_no'}).as_markup()
                 )
-            await state.set_data({'user_id': user_id})
+            await state.set_data({'user_id': user_id, "phone": phone, "telegram_id":message.from_user.id})
         elif user["customerGroup"]['name'] in ["СТАРТ", "2", "3", "4"]:
             telegram_id = message.from_user.id
 
@@ -112,6 +112,12 @@ async def register_yes_update(callback_data: Message, state: FSMContext):
     data = await state.get_data()
     user_id = data.get('user_id')
     response = await add_start_group(user_id)
+    db_user = BotUser(telegram_id=data.get("telegram_id"),
+                            quick_resto_id=user_id,
+                            phone=data.get("phone"),
+                            creation_date=datetime.now().date())
+
+    await BotUserManager().add(db_user)
     await callback_data.message.answer("Вы успешно зарегистрированы в системе лояльности! Чтобы продолжить нажмите /start")
     await state.clear()
 
