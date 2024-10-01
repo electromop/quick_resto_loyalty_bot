@@ -55,23 +55,21 @@ async def create_client(first_name: str, last_name: str, phone: str) -> dict:
         "comment": "Создан через бота",
         "contactMethods": [
             {
-                "id": 0,
                 "type": "phoneNumber",
                 "value": phone
             }
         ],
         "customerGroup": {
-            "id": 1,
-            "version": 0,
-            "name": "СТАРТ",
-            "discountValue": 0,
-            "promotable": False,
-            "minTotalAmount": 0,
-            "customerOperationLimit": 9999,
-            "refId": "crm_discount-2409231102036127",
-            "deleted": False,
-            "groupId": 1
-        },
+                "id": 59,
+                "version": 0,
+                "deleted": False,
+                "name": "4",
+                "discountValue": 0.00,
+                "promotable": False,
+                "minTotalAmount": 150000.00,
+                "customerOperationLimit": 9999,
+                "groupId": 59
+            },
         "tokens": [
             {
                 "type": "card",
