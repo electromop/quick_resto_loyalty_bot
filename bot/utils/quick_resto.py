@@ -60,15 +60,15 @@ async def create_client(first_name: str, last_name: str, phone: str) -> dict:
             }
         ],
         "customerGroup": {
-                "id": 59,
+                "id": 56,
                 "version": 0,
                 "deleted": False,
-                "name": "4",
+                "name": "СТАРТ",
                 "discountValue": 0.00,
                 "promotable": False,
-                "minTotalAmount": 150000.00,
+                "minTotalAmount": 0.00,
                 "customerOperationLimit": 9999,
-                "groupId": 59
+                "groupId": 56
             },
         "tokens": [
             {
@@ -76,7 +76,28 @@ async def create_client(first_name: str, last_name: str, phone: str) -> dict:
                 "entry": "manual",
                 "key": phone
             }
-        ]
+        ],
+        "accounts": [
+        {
+            "accountBalance": {
+                "ledger": 0,
+                "available": 0,
+                "debitHold": 0,
+                "creditHold": 0
+            },
+            "deleted": False,
+            "accountState": "open",
+            "hidden": False,
+            "convertBonuses": True,
+            "accountType": {
+                "name": "Бонусный счет",
+                "maxUsage": 20.00,
+                "resetPeriod": 365.00000,
+                "accountGuid": "bonus_account_type-1",
+                "deleted": False
+            }
+        }
+    ]
     }
     headers = {
         'Content-Type': 'application/json',
