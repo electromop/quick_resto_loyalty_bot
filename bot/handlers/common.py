@@ -36,7 +36,8 @@ async def cmd_start(message: Message, state: FSMContext):
         cachback_info = await get_bonus_info(user.quick_resto_id)
         await message.answer(
         f"Здравствуйте, {html.quote(message.from_user.first_name)}."
-        f"\n\nВаш уровень: {cachback_info['bonus_level']} - {cachback_info['bonus_percent']}%"
+        f"\n\nВаш уровень: {cachback_info['bonus_level']}"
+        f"\nПроцент кешбека: {cachback_info['bonus_percent']}%"
         f"\nКоличество баллов: {cachback_info['bonus_balance']}",
         reply_markup=make_inline_keyboard({'История списаний': 'bonus_history'}).as_markup()
         )
@@ -52,7 +53,8 @@ async def cmd_start_callback(callback_data: Message, state: FSMContext):
         cachback_info = await get_bonus_info(user.quick_resto_id)
         await callback_data.message.answer(
         f"Здравствуйте, {html.quote(callback_data.from_user.first_name)}."
-        f"\nВаш уровень кешбека: {cachback_info['bonus_level']} {cachback_info['bonus_percent']}"
+        f"\n\nВаш уровень: {cachback_info['bonus_level']}"
+        f"\nПроцент кешбека: {int(cachback_info['bonus_percent'])}%"
         f"\nКоличество баллов: {cachback_info['bonus_balance']}",
          reply_markup=make_inline_keyboard({'История списаний': 'bonus_history'}).as_markup()
         )

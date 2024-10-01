@@ -20,14 +20,18 @@ def format_transactions(transactions):
     ],
     '''
     formatted_transactions = "ИСТОРИЯ ТРАНЗАКЦИЙ\n\n"
+    # print(type(transactions))
+    # print(list(transactions))
+    # print(type(transactions[:25]))
     print(type(transactions))
-    print(list(transactions))
-    for transaction in list(transactions).reverse()[:25]:
+    if len(transactions) > 50:
+        transactions = transactions[:49]
+    for transaction in transactions:
         # print("DATE", transaction["regTime"])
         if op_type.get(transaction["type"]):
-            formatted_transactions += f"""{op_type.get(transaction["type"])} {transaction["regTime"][:10]} {transaction["amount"]}\n"""
+            formatted_transactions += f"""{transaction["regTime"][:10]} {op_type.get(transaction["type"])} {transaction["amount"]}\n"""
     if formatted_transactions:
-        print(formatted_transactions)
+        # print(formatted_transactions)
         return formatted_transactions
     else:
         return "Пока что тут ничего нет("

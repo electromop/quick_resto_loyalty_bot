@@ -11,7 +11,7 @@ from aiogram.types import (
     InlineKeyboardMarkup, WebAppInfo,
 )
 
-from utils.quick_resto import create_client, get_bonus_info, search_client, get_client_info
+from utils.quick_resto import create_client, get_bonus_info, search_client, get_client_info, add_start_group
 from states.states import Register
 from config import Config
 
@@ -42,7 +42,14 @@ async def cmd_register_phone(message: Message, state: FSMContext):
     print(user_id)
     if user_id:
         user = await get_client_info(user_id)
-        if user["customerGroup"]['name'] in ["СТАРТ", "2", "3", "4"]:
+        if not user.get("customerGroup"):
+            await message.answer(
+                    f"{html.italic('К сожалению, Вы еще не зарегистрированы в системе лояльности.')}"
+                    "\n\nХотите зарегистрироваться?",
+                    reply_markup=make_inline_keyboard({'Да': 'register_yes_update', 'Нет': 'register_no'}).as_markup()
+                )
+            await state.set_data({'user_id': user_id})
+        elif user["customerGroup"]['name'] in ["СТАРТ", "2", "3", "4"]:
             telegram_id = message.from_user.id
 
             db_user = BotUser(telegram_id=telegram_id,
@@ -57,7 +64,8 @@ async def cmd_register_phone(message: Message, state: FSMContext):
                 cachback_info = await get_bonus_info(db_user.quick_resto_id)
                 await message.answer(
                         f"Здравствуйте, {html.quote(message.from_user.first_name)}."
-                        f"\nВаш уровень кешбека: {cachback_info['bonus_level']} {cachback_info['bonus_percent']}"
+                        f"\n\nВаш уровень: {cachback_info['bonus_level']}"
+                        f"\nПроцент кешбека: {int(cachback_info['bonus_percent'])}%"
                         f"\nКоличество баллов: {cachback_info['bonus_balance']}",
                         reply_markup=make_inline_keyboard({'История списаний': 'bonus_history'}).as_markup()
                         )
@@ -99,6 +107,14 @@ async def register_yes(callback_data: Message, state: FSMContext):
     await callback_data.message.answer(html.italic("Пожалуйста, введите свое ФИО, чтобы мы знали как к Вам обращаться:"))
     await state.set_state(Register.phone_after_name)
 
+@router.callback_query(lambda call: call.data=="register_yes_update")
+async def register_yes_update(callback_data: Message, state: FSMContext):
+    data = await state.get_data()
+    user_id = data.get('user_id')
+    response = await add_start_group(user_id)
+    await callback_data.message.answer("Вы успешно зарегистрированы в системе лояльности! Чтобы продолжить нажмите /start")
+    await state.clear()
+
 @router.message(StateFilter(Register.phone_after_name))
 async def cmd_register_name(message: Message, state: FSMContext):
     await message.answer(html.italic("Одну минуту, создаем Ваш профиль..."))
@@ -124,7 +140,8 @@ async def cmd_register_name(message: Message, state: FSMContext):
             cachback_info = await get_bonus_info(user_id)
             await message.answer(
                     f"Здравствуйте, {html.quote(message.from_user.first_name)}."
-                    f"\nВаш уровень кешбека: {cachback_info['bonus_level']} {cachback_info['bonus_percent']}"
+                    f"\n\nВаш уровень: {cachback_info['bonus_level']}"
+                    f"\nПроцент кешбека: {int(cachback_info['bonus_percent'])}%"
                     f"\nКоличество баллов: {cachback_info['bonus_balance']}",
                     reply_markup=make_inline_keyboard({"История списаний": 'bonus_history'}).as_markup()
             )
@@ -144,8 +161,8 @@ async def cmd_register_name(message: Message, state: FSMContext):
             cachback_info = await get_bonus_info(user_id)
             await message.answer(
                     f"Здравствуйте, {html.quote(message.from_user.first_name)}."
-                    f"\nВаш уровень кешбека: {cachback_info}"
-                    f"\nВаш уровень кешбека: {cachback_info['bonus_level']} {cachback_info['bonus_percent']}"
+                    f"\n\nВаш уровень: {cachback_info['bonus_level']}"
+                    f"\nПроцент кешбека: {int(cachback_info['bonus_percent'])}%"
                     f"\nКоличество баллов: {cachback_info['bonus_balance']}",
                     reply_markup=make_inline_keyboard({"История списаний": "bonus_history"}).as_markup()
             )

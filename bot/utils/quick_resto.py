@@ -129,6 +129,50 @@ async def get_bonus_programms() -> list:
     bonuses_list = await get(url, headers=headers, auth=BasicAuth(Config.QUICK_RESTO_API_USERNAME, Config.QUICK_RESTO_API_PASSWORD))
     return bonuses_list
 
+async def add_start_group(user_id):
+    url = f"https://{Config.QUICK_RESTO_LAYER_NAME}.quickresto.ru/platform/online/api/update?moduleName=crm.customer&className=ru.edgex.quickresto.modules.crm.customer.CrmCustomer"
+    headers = {
+        'Content-Type': 'application/json',
+        'Connection': 'keep-alive'
+    }
+    payload = {
+            "id": user_id,
+            "customerGroup": {
+                            "id": 56,
+                            "version": 0,
+                            "deleted": False,
+                            "name": "СТАРТ",
+                            "discountValue": 0.00,
+                            "promotable": False,
+                            "minTotalAmount": 0.00,
+                            "customerOperationLimit": 9999,
+                            "groupId": 56
+                        },
+                "accounts": [
+                    {
+                        "accountBalance": {
+                            "ledger": 0,
+                            "available": 0,
+                            "debitHold": 0,
+                            "creditHold": 0
+                        },
+                        "deleted": False,
+                        "accountState": "open",
+                        "hidden": False,
+                        "convertBonuses": True,
+                        "accountType": {
+                            "name": "Бонусный счет",
+                            "maxUsage": 20.00,
+                            "resetPeriod": 365.00000,
+                            "accountGuid": "bonus_account_type-1",
+                            "deleted": False
+                        }
+                    }
+                ]
+            }
+    response = await post(url, headers=headers, data=payload, auth=BasicAuth(Config.QUICK_RESTO_API_USERNAME, Config.QUICK_RESTO_API_PASSWORD))
+    return response
+
 async def get_bonus_info(client_id: int) -> dict:
     client_info = await get_client_info(client_id)
     bonuses_list = await get_bonus_programms()
